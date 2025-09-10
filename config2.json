@@ -1,0 +1,13 @@
+{
+  "task-type": "create-videos",
+  "threads": 5,
+  "source-audio-folder-path": "./audio",
+  "source-images-folder-path": "./images",
+  "output-video-folder-path": "./out",
+  "video-caption-text": "Min bir hikmətli söz",
+  "subtitles-enabled": true,
+  "subtitles-max-line-width": 20,
+  "subtitles-max-line-count": 2,
+  "subtitles-model": "large-v3",
+  "subtitles-language": "az"
+}
