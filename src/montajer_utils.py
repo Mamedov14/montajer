@@ -131,6 +131,7 @@ def create_video_with_image(image_path: str,
     font_path = 'fonts/OpenSans-Bold.ttf'
     audio_clip = None
     files_for_remove = []
+    subtitle_path = None
 
     try:
         files_for_remove, audio_clip = _clean_audiotrack(audio_path, duration)
@@ -157,6 +158,9 @@ def create_video_with_image(image_path: str,
         if audio_clip is not None:
             audio_clip.close()
         remove_files(files_for_remove)
+        # Remove subtitle file if it was created
+        if subtitle_path and os.path.exists(subtitle_path):
+            os.remove(subtitle_path)
 
 
 def create_videos_with_image(source_audio_folder_path: str,
