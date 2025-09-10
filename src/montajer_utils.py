@@ -11,23 +11,28 @@ from .file_utils import fix_filenames, remove_files, find_first_mp3_file
 from .subtitles_utils import write_subtitle_file, SubtitleFormat, SubtitlesConfig
 
 
-def clean_audiotrack(audio_path: str, output_path: str):
+def clean_audiotrack(audio_path: str, output_path: str = None):
     """
-        Removes all silence from audiotrack and deletes all temporary files
-        :param audio_path: path to audiofile
-        :param output_path path o output audiofile
-        """
+    Removes all silence from audiotrack and deletes all temporary files
+    :param audio_path: path to audiofile
+    :param output_path: path to output audiofile (optional)
+    """
     files_for_remove = []
     try:
         files_for_remove, audiotrack = _clean_audiotrack(audio_path)
         print(f"files for remove: {files_for_remove}")
+        
+        if output_path is None:
+            output_path = f"{audio_path[:-4]}_fixed.mp3"
+            
         audiotrack.write_audiofile(output_path)
     finally:
         remove_files([file for file in files_for_remove if not file.endswith(".mp3")])
 
 
-def clean_audiotrack(audio_path: str):
-    clean_audiotrack(audio_path, f"{audio_path[:-4]}_fixed.mp3")
+# This function is deprecated, use clean_audiotrack with output_path parameter instead
+# def clean_audiotrack(audio_path: str):
+#     clean_audiotrack(audio_path, f"{audio_path[:-4]}_fixed.mp3")
 
 
 def _clean_audiotrack(audio_path: str, duration: int = None) -> Tuple[list[str], AudioFileClip]:
@@ -93,8 +98,8 @@ def export_video(image_clip: ImageClip,
     video_with_caption = CompositeVideoClip([video_clip, text_clip])
 
     if duration:
-        video_with_caption.set_duration(duration)
-        text_clip.set_duration(duration)
+        video_with_caption = video_with_caption.set_duration(duration)
+        text_clip = text_clip.set_duration(duration)
 
     video_with_caption.write_videofile(output_path, codec='libx264', audio_codec='aac', fps=24)
 
@@ -133,15 +138,24 @@ def create_video_with_image(image_path: str,
         image_clip = add_background_image(video_type, image_path, audio_clip.duration)
         text_clip = add_text_on_background(text, audio_clip.duration, font_path)
 
-        # todo сделать так, чтобы субтитры сразу вставлялись в видео
+        # Export video without subtitles first
         export_video(image_clip, audio_clip, text_clip, output_path)
+        
+        # If subtitles are enabled, burn them into the video and replace the original
         if subtitles_enabled:
             subtitle_path = f'{audio_path[:-4]}.srt'
             write_subtitle_file(find_first_mp3_file(files_for_remove), subtitle_path, SubtitleFormat.SRT,
                                 subtitles_config)
-            burn_subtitles_into_video(output_path, subtitle_path, f'{output_path[:-4]}_subtitles.mp4')
+            burn_subtitles_into_video(output_path, subtitle_path, f'{output_path[:-4]}_temp.mp4')
+            
+            # Remove the original video and rename the subtitled video to the original name
+            import os
+            if os.path.exists(output_path):
+                os.remove(output_path)
+            os.rename(f'{output_path[:-4]}_temp.mp4', output_path)
     finally:
-        audio_clip.close()
+        if audio_clip is not None:
+            audio_clip.close()
         remove_files(files_for_remove)
 
 

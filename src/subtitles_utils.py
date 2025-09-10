@@ -20,7 +20,21 @@ def generate_word_timestamps(audio_path: str, model, language) -> list[SubtitleE
     :param audio_path: Path to the audio file.
     :return: Subtitles as a string.
     """
-    model = WhisperModel(model, device="cuda", compute_type="float16")
+    # Auto-detect device and compute type
+    try:
+        import torch
+        if torch.cuda.is_available():
+            device = "cuda"
+            compute_type = "float16"
+        else:
+            device = "cpu"
+            compute_type = "int8"
+    except ImportError:
+        # If torch is not available, default to CPU
+        device = "cpu"
+        compute_type = "int8"
+    
+    model = WhisperModel(model, device=device, compute_type=compute_type)
     segments, info = model.transcribe(audio_path, language=language, word_timestamps=True)
 
     word_timestamps = []

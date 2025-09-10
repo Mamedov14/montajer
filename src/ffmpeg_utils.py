@@ -31,8 +31,16 @@ def detect_silence(path: str, time: float):
 
     returns = list of tuples with start and end point of silences
     """
-    command = "ffmpeg -i " + path + " -af silencedetect=n=-35dB:d=" + str(time) + " -f null -"
-    out = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    command = [
+        'ffmpeg', '-i', path, 
+        '-af', f'silencedetect=n=-35dB:d={time}',
+        '-f', 'null', '-'
+    ]
+    out = subprocess.Popen(
+        command,
+        stdout=subprocess.PIPE, 
+        stderr=subprocess.STDOUT
+    )
     stdout, stderr = out.communicate()
     s = stdout.decode("utf-8")
     k = s.split('[silencedetect @')
@@ -114,7 +122,18 @@ def to_unix_path(path: str) -> str:
 
 # add font
 def burn_subtitles_into_video(video_path: str, subtitles_path: str, output_path: str):
-    command = f'ffmpeg -y -i {video_path} -vf \"subtitles=\'{to_unix_path(subtitles_path)}\':force_style=\'Alignment=2,MarginV=50\'" -c:a copy {output_path}'
+    # Use subprocess with a list of arguments to prevent command injection
+    # Properly escape the subtitles path for the filter
+    import shlex
+    
+    # Create the subtitles filter with proper escaping
+    subtitles_filter = f"subtitles={shlex.quote(to_unix_path(subtitles_path))}:force_style='Alignment=2,MarginV=50'"
+    
+    command = [
+        'ffmpeg', '-y', '-i', video_path,
+        '-vf', subtitles_filter,
+        '-c:a', 'copy', output_path
+    ]
 
     try:
         result = subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
